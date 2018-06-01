@@ -13,6 +13,7 @@ except ImportError:
 import sys
 
 from random import randint
+from libhpma115S0 import HPMA115S0
 
 mainloop = None
 
@@ -281,16 +282,11 @@ class HeartRateMeasurementChrc(Characteristic):
         value = []
         value.append(dbus.Byte(0x06))
 
-        value.append(dbus.Byte(randint(90, 130)))
+        if (hpma115S0.readParticleMeasurement()):
+            print("PM2.5: %d ug/m3" % (hpma115S0._pm2_5))
+            print("PM10: %d ug/m3" % (hpma115S0._pm10))
 
-        if self.hr_ee_count % 10 == 0:
-            value[0] = dbus.Byte(value[0] | 0x08)
-            value.append(dbus.Byte(self.service.energy_expended & 0xff))
-            value.append(dbus.Byte((self.service.energy_expended >> 8) & 0xff))
-
-        self.service.energy_expended = \
-                min(0xffff, self.service.energy_expended + 1)
-        self.hr_ee_count += 1
+        value.append(dbus.Byte(hpma115S0._pm2_5))
 
         print('Updating value: ' + repr(value))
 
@@ -391,7 +387,7 @@ class BatteryLevelCharacteristic(Characteristic):
                 service)
         self.notifying = False
         self.battery_lvl = 100
-        GObject.timeout_add(5000, self.drain_battery)
+        GObject.timeout_add(10000, self.drain_battery)
 
     def notify_battery_level(self):
         if not self.notifying:
@@ -628,6 +624,14 @@ def find_adapter(bus):
 
     return None
 
+def startingSensor():
+    print("Initialization HPMA115S0..",end='')
+    hpma115S0 = HPMA115S0.HPMA115S0("/dev/ttyAMA0")
+    print("serial..",end='')
+    hpma115S0.init()
+    hpma115S0.startParticleMeasurement()
+    print("done.")
+
 def main():
     global mainloop
 
@@ -647,6 +651,8 @@ def main():
     app = Application(bus)
 
     mainloop = GObject.MainLoop()
+
+    startingSensor()
 
     print('Registering GATT application...')
 
