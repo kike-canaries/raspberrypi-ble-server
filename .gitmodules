@@ -1,0 +1,3 @@
+[submodule "libhpma115S0"]
+	path = libhpma115S0
+	url = https://github.com/ThingType/HPMA115S0_Python_library.git
